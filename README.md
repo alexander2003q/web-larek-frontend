@@ -57,7 +57,7 @@ yarn build
 **Поток данных:**
 BasketView -> 'ui:add-basket' -> EventEmitter -> BasketModel.addItem(id) -> 'ui:change-basket' -> EventEmitter -> BasketView.render()
 
-# Ключевой базовый тип для отображений
+# Ключевой базовый класс для отображений
 
 Базовым классом для всех отображений является:
 
@@ -447,14 +447,14 @@ View контролирует ввод данных о заказе в поля 
 
 Защищённые методы (используются в классах-наследниках):
 
-- protected async \_get<T>(uri: string): Promise<T> 
-Выполняет GET-запрос по адресу baseUrl + uri. Возвращает промис с данными типа T.
+- protected async \_get<T>(uri: string): Promise<T>
+  Выполняет GET-запрос по адресу baseUrl + uri. Возвращает промис с данными типа T.
 
 - protected async \_post<T>(uri: string, data: object): Promise<T>
-Отправляет POST-запрос с телом data (сериализуемым в JSON) на baseUrl + uri. Возвращает промис с данными типа T.
+  Отправляет POST-запрос с телом data (сериализуемым в JSON) на baseUrl + uri. Возвращает промис с данными типа T.
 
 - protected async \_handleResponse<T>(response: Response): Promise<T>
-Проверяет статус ответа response.При успешном ответе (response.ok) возвращает результат в формате JSON.При ошибке — пытается извлечь сообщение об ошибке из тела ответа (ErrorState) и отклоняет промис с этим сообщением (или текстом статуса).
+  Проверяет статус ответа response.При успешном ответе (response.ok) возвращает результат в формате JSON.При ошибке — пытается извлечь сообщение об ошибке из тела ответа (ErrorState) и отклоняет промис с этим сообщением (или текстом статуса).
 
 ### Особенности:
 
