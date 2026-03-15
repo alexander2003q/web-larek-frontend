@@ -1,8 +1,3 @@
-export type ApiListResponse<Type> = {
-	total: number;
-	items: Type[];
-};
-
 export type ProductCategory =
 	| 'софт-скил'
 	| 'хард-скил'
@@ -21,13 +16,18 @@ export interface Product {
 	price: number | null;
 }
 
+export interface ApiListResponse<T> {
+	total: number;
+	items: T[];
+}
+
 export interface OrderData {
 	payment: PaymentMethod;
+	address: string;
 	email: string;
 	phone: string;
-	address: string;
-	total: number;
 	items: string[];
+	total: number;
 }
 
 export interface OrderResult {
@@ -35,8 +35,9 @@ export interface OrderResult {
 	total: number;
 }
 
-export interface IWebLarekAPI {
-	getProducts: () => Promise<ApiListResponse<Product>>;
-	getProduct: (id: string) => Promise<Product>;
-	createOrder: (order: OrderData) => Promise<OrderResult>;
+export interface FormErrors {
+	payment?: string;
+	address?: string;
+	email?: string;
+	phone?: string;
 }

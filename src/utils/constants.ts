@@ -1,6 +1,4 @@
-export const API_URL = `${process.env.API_ORIGIN}/api/weblarek`;
-export const CDN_URL = `${process.env.API_ORIGIN}/content/weblarek`;
+const apiOrigin = (process.env.API_ORIGIN ?? '').trim();
 
-export const settings = {
-
-};
+export const API_URL = `${apiOrigin}/api/weblarek`;
+export const CDN_URL = `${apiOrigin}/content/weblarek`;
