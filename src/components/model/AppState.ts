@@ -5,6 +5,7 @@ export enum AppEvents {
 	ItemsChanged = 'items:changed',
 	BasketChanged = 'basket:changed',
 	PreviewChanged = 'preview:changed',
+	FormChanged = 'form:changed',
 	OrderChanged = 'order:changed',
 	ContactsChanged = 'contacts:changed',
 }
@@ -61,19 +62,17 @@ export class AppState {
 	}
 
 	toggleBasket(productId: string): void {
-		if (this._basket.has(productId)) {
+		if (this.inBasket(productId)) {
 			this._basket.delete(productId);
 		} else {
 			this._basket.add(productId);
 		}
 		this.events.emit(AppEvents.BasketChanged);
-		this.events.emit(AppEvents.PreviewChanged);
 	}
 
 	removeFromBasket(productId: string): void {
 		this._basket.delete(productId);
 		this.events.emit(AppEvents.BasketChanged);
-		this.events.emit(AppEvents.PreviewChanged);
 	}
 
 	clearBasket(): void {
@@ -92,16 +91,21 @@ export class AppState {
 	}
 
 	get basketTotal(): number {
-		return this.basketItems.reduce((total, item) => total + (item.price ?? 0), 0);
+		return this.basketItems.reduce(
+			(total, item) => total + (item.price ?? 0),
+			0
+		);
 	}
 
 	updateOrder(data: Partial<Pick<OrderDraft, 'payment' | 'address'>>) {
 		this._order = { ...this._order, ...data };
+		this.events.emit(AppEvents.FormChanged);
 		this.events.emit(AppEvents.OrderChanged);
 	}
 
 	updateContacts(data: Partial<Pick<OrderDraft, 'email' | 'phone'>>) {
 		this._order = { ...this._order, ...data };
+		this.events.emit(AppEvents.FormChanged);
 		this.events.emit(AppEvents.ContactsChanged);
 	}
 
@@ -134,7 +138,9 @@ export class AppState {
 	canCheckout(): boolean {
 		const orderErrors = this.validateOrder();
 		const contactErrors = this.validateContacts();
-		return !Object.keys(orderErrors).length && !Object.keys(contactErrors).length;
+		return (
+			!Object.keys(orderErrors).length && !Object.keys(contactErrors).length
+		);
 	}
 
 	buildOrderPayload(): OrderData {
@@ -155,8 +161,8 @@ export class AppState {
 		this._basket.clear();
 		this._order = { ...initialOrder };
 		this.events.emit(AppEvents.BasketChanged);
+		this.events.emit(AppEvents.FormChanged);
 		this.events.emit(AppEvents.OrderChanged);
 		this.events.emit(AppEvents.ContactsChanged);
-		this.events.emit(AppEvents.PreviewChanged);
 	}
 }

@@ -4,8 +4,10 @@ import { ensureElement } from './utils/utils';
 import { API_URL, CDN_URL } from './utils/constants';
 import { WebLarekApi } from './components/model/WebLarekApi';
 import { AppEvents, AppState } from './components/model/AppState';
+import { PaymentMethod } from './types';
 import {
 	BasketView,
+	BasketItemView,
 	CatalogCardView,
 	ContactsFormView,
 	OrderFormView,
@@ -27,33 +29,55 @@ const appView = new AppView(() => openBasket());
 const modal = new Modal(ensureElement<HTMLElement>('#modal-container'), () =>
 	appView.lockPage(false)
 );
-const catalogCardView = new CatalogCardView((id) => openPreview(id));
 const previewCardView = new PreviewCardView((id) => appState.toggleBasket(id));
-const basketView = new BasketView(
-	(id) => appState.removeFromBasket(id),
-	() => openOrder()
-);
+const basketView = new BasketView(() => openOrder());
 const orderView = new OrderFormView(
-	(payment, address) => {
-		appState.updateOrder({ payment, address });
+	(field, value) => {
+		if (field === 'payment') {
+			appState.updateOrder({ payment: value as PaymentMethod });
+		}
+		if (field === 'address') {
+			appState.updateOrder({ address: value });
+		}
 	},
 	() => openContacts()
 );
 const contactsView = new ContactsFormView(
-	(email, phone) => {
-		appState.updateContacts({ email, phone });
+	(field, value) => {
+		if (field === 'email') {
+			appState.updateContacts({ email: value });
+		}
+		if (field === 'phone') {
+			appState.updateContacts({ phone: value });
+		}
 	},
 	() => submitOrder()
 );
 const successView = new SuccessView(() => modal.close());
 
 events.on(AppEvents.ItemsChanged, () => {
-	const cards = appState.catalog.map((product) => catalogCardView.render(product));
+	const cards = appState.catalog.map((product) =>
+		new CatalogCardView((id) => openPreview(id)).render(product)
+	);
 	appView.renderCatalog(cards);
 });
 
 events.on(AppEvents.BasketChanged, () => {
 	appView.setBasketCount(appState.basketCount);
+	if (!isModalOpen()) {
+		return;
+	}
+	const modalContent = getModalContent();
+	if (modalContent === basketView.element) {
+		renderBasket();
+	}
+	if (modalContent === previewCardView.element) {
+		const preview = appState.preview;
+		if (!preview) {
+			return;
+		}
+		previewCardView.setBasketState(appState.inBasket(preview.id));
+	}
 });
 
 events.on(AppEvents.PreviewChanged, () => {
@@ -62,35 +86,25 @@ events.on(AppEvents.PreviewChanged, () => {
 		return;
 	}
 	appView.lockPage(true);
-	modal.open(previewCardView.render(product, appState.inBasket(product.id)));
+	modal.open(
+		previewCardView.render({
+			product,
+			inBasket: appState.inBasket(product.id),
+		})
+	);
 });
 
-events.on(AppEvents.OrderChanged, () => {
-	const errors = appState.validateOrder();
-	if (document.querySelector('#modal-container.modal_active')) {
-		appView.lockPage(true);
-		modal.open(
-			orderView.render({
-				payment: appState.order.payment,
-				address: appState.order.address,
-				errors,
-			})
-		);
-	}
-});
-
-events.on(AppEvents.ContactsChanged, () => {
-	const errors = appState.validateContacts();
-	if (document.querySelector('#modal-container.modal_active')) {
-		appView.lockPage(true);
-		modal.open(
-			contactsView.render({
-				email: appState.order.email,
-				phone: appState.order.phone,
-				errors,
-			})
-		);
-	}
+events.on(AppEvents.FormChanged, () => {
+	orderView.render({
+		payment: appState.order.payment,
+		address: appState.order.address,
+		errors: appState.validateOrder(),
+	});
+	contactsView.render({
+		email: appState.order.email,
+		phone: appState.order.phone,
+		errors: appState.validateContacts(),
+	});
 });
 
 async function bootstrap() {
@@ -116,17 +130,16 @@ function openPreview(productId: string) {
 
 function openBasket() {
 	appView.lockPage(true);
-	modal.open(basketView.render(appState.basketItems, appState.basketTotal));
+	renderBasket();
 }
 
 function openOrder() {
-	const errors = appState.validateOrder();
 	appView.lockPage(true);
 	modal.open(
 		orderView.render({
 			payment: appState.order.payment,
 			address: appState.order.address,
-			errors,
+			errors: appState.validateOrder(),
 		})
 	);
 }
@@ -134,16 +147,19 @@ function openOrder() {
 function openContacts() {
 	const orderErrors = appState.validateOrder();
 	if (Object.keys(orderErrors).length) {
-		appState.updateOrder({});
+		orderView.render({
+			payment: appState.order.payment,
+			address: appState.order.address,
+			errors: orderErrors,
+		});
 		return;
 	}
-	const contactErrors = appState.validateContacts();
 	appView.lockPage(true);
 	modal.open(
 		contactsView.render({
 			email: appState.order.email,
 			phone: appState.order.phone,
-			errors: contactErrors,
+			errors: appState.validateContacts(),
 		})
 	);
 }
@@ -151,7 +167,11 @@ function openContacts() {
 async function submitOrder() {
 	const contactErrors = appState.validateContacts();
 	if (Object.keys(contactErrors).length || !appState.canCheckout()) {
-		appState.updateContacts({});
+		contactsView.render({
+			email: appState.order.email,
+			phone: appState.order.phone,
+			errors: contactErrors,
+		});
 		return;
 	}
 
@@ -164,13 +184,35 @@ async function submitOrder() {
 		modal.open(successView.render(paidTotal));
 	} catch (error) {
 		const fallback = successView.render(0);
-		const description = fallback.querySelector('.order-success__description');
-		if (description) {
-			description.textContent = 'Не удалось оформить заказ. Повторите попытку.';
-		}
+		successView.setDescription('Не удалось оформить заказ. Повторите попытку.');
 		appView.lockPage(true);
 		modal.open(fallback);
 	}
+}
+
+function renderBasket() {
+	const itemElements = appState.basketItems.map((product, index) =>
+		new BasketItemView((id) => appState.removeFromBasket(id)).render({
+			product,
+			index,
+		})
+	);
+
+	modal.open(
+		basketView.render({
+			items: itemElements,
+			total: appState.basketTotal,
+		})
+	);
+}
+
+function isModalOpen(): boolean {
+	return Boolean(document.querySelector('#modal-container.modal_active'));
+}
+
+function getModalContent(): Element | null {
+	const content = document.querySelector('#modal-container .modal__content');
+	return content?.firstElementChild ?? null;
 }
 
 bootstrap();
