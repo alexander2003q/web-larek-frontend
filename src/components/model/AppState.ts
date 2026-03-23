@@ -5,6 +5,7 @@ export enum AppEvents {
 	ItemsChanged = 'items:changed',
 	BasketChanged = 'basket:changed',
 	PreviewChanged = 'preview:changed',
+	PreviewBasketToggleRequested = 'preview:basket-toggle-requested',
 	FormChanged = 'form:changed',
 	OrderChanged = 'order:changed',
 	ContactsChanged = 'contacts:changed',

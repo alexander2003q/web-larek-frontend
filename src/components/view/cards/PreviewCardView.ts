@@ -13,10 +13,9 @@ export class PreviewCardView extends BaseProductCardView<PreviewData> {
 	private readonly imageElement: HTMLImageElement;
 	private readonly descriptionElement: HTMLElement;
 	private readonly basketButton: HTMLButtonElement;
-	private currentProductId = '';
 	private isDisabled = false;
 
-	constructor(private readonly onToggleBasket: (id: string) => void) {
+	constructor(private readonly onToggleBasket: () => void) {
 		super('card-preview');
 		this.categoryElement = ensureElement<HTMLElement>('.card__category', this.container);
 		this.imageElement = ensureElement<HTMLImageElement>('.card__image', this.container);
@@ -25,7 +24,7 @@ export class PreviewCardView extends BaseProductCardView<PreviewData> {
 
 		this.basketButton.onclick = () => {
 			if (!this.isDisabled) {
-				this.onToggleBasket(this.currentProductId);
+				this.onToggleBasket();
 			}
 		};
 	}
@@ -36,7 +35,6 @@ export class PreviewCardView extends BaseProductCardView<PreviewData> {
 
 	protected applyData(data: PreviewData): void {
 		const { product, inBasket } = data;
-		this.currentProductId = product.id;
 		this.setCommonProductFields(product);
 		this.categoryElement.textContent = product.category;
 		this.categoryElement.className = `card__category ${categoryClassName(product.category)}`;

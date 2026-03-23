@@ -29,7 +29,9 @@ const appView = new AppView(() => openBasket());
 const modal = new Modal(ensureElement<HTMLElement>('#modal-container'), () =>
 	appView.lockPage(false)
 );
-const previewCardView = new PreviewCardView((id) => appState.toggleBasket(id));
+const previewCardView = new PreviewCardView(() =>
+	events.emit(AppEvents.PreviewBasketToggleRequested)
+);
 const basketView = new BasketView(() => openOrder());
 const orderView = new OrderFormView(
 	(field, value) => {
@@ -57,7 +59,7 @@ const successView = new SuccessView(() => modal.close());
 
 events.on(AppEvents.ItemsChanged, () => {
 	const cards = appState.catalog.map((product) =>
-		new CatalogCardView((id) => openPreview(id)).render(product)
+		new CatalogCardView(() => openPreview(product.id)).render(product)
 	);
 	appView.renderCatalog(cards);
 });
@@ -78,6 +80,14 @@ events.on(AppEvents.BasketChanged, () => {
 		}
 		previewCardView.setBasketState(appState.inBasket(preview.id));
 	}
+});
+
+events.on(AppEvents.PreviewBasketToggleRequested, () => {
+	const preview = appState.preview;
+	if (!preview) {
+		return;
+	}
+	appState.toggleBasket(preview.id);
 });
 
 events.on(AppEvents.PreviewChanged, () => {
@@ -192,7 +202,7 @@ async function submitOrder() {
 
 function renderBasket() {
 	const itemElements = appState.basketItems.map((product, index) =>
-		new BasketItemView((id) => appState.removeFromBasket(id)).render({
+		new BasketItemView(() => appState.removeFromBasket(product.id)).render({
 			product,
 			index,
 		})

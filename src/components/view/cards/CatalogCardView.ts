@@ -6,19 +6,15 @@ import { BaseProductCardView } from './BaseProductCardView';
 export class CatalogCardView extends BaseProductCardView<Product> {
 	private readonly categoryElement: HTMLElement;
 	private readonly imageElement: HTMLImageElement;
-	private currentProductId = '';
 
-	constructor(private readonly onClick: (id: string) => void) {
+	constructor(private readonly onClick: () => void) {
 		super('card-catalog');
 		this.categoryElement = ensureElement<HTMLElement>('.card__category', this.container);
 		this.imageElement = ensureElement<HTMLImageElement>('.card__image', this.container);
-		this.container.onclick = () => {
-			this.onClick(this.currentProductId);
-		};
+		this.container.onclick = this.onClick;
 	}
 
 	protected applyData(product: Product): void {
-		this.currentProductId = product.id;
 		this.setCommonProductFields(product);
 		this.categoryElement.textContent = product.category;
 		this.categoryElement.className = `card__category ${categoryClassName(product.category)}`;
